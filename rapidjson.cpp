@@ -24,6 +24,7 @@
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/error/en.h"
 
+#include "py2compat.hpp"
 
 using namespace rapidjson;
 
@@ -1285,7 +1286,7 @@ struct PyHandler {
         } else {
             std::string zstr(str, length);
 
-            value = PyLong_FromString(zstr.c_str(), NULL, 10);
+            value = PyLong_FromString((char*)zstr.c_str(), NULL, 10);
         }
 
         if (value == NULL) {
@@ -2058,7 +2059,7 @@ do_decode(PyObject* decoder, const char* jsonStr, Py_ssize_t jsonStrLen,
             // value is a string.  Otherwise, use the original exception since
             // we can't be sure the exception type takes a single string.
             if (evalue != NULL && PyUnicode_Check(evalue)) {
-                PyErr_Format(etype, "Parse error at offset %zu: %S", offset, evalue);
+                PyErr_Format(etype, "Parse error at offset %zu: %s", offset, PyString_AS_STRING(PyObject_Str(evalue)));
                 Py_DECREF(etype);
                 Py_DECREF(evalue);
                 Py_XDECREF(etraceback);
@@ -2922,7 +2923,7 @@ dumps_internal(
         if (RAPIDJSON_UNLIKELY(size != 32 && size != 36)) {
             PyErr_Format(PyExc_ValueError,
                          "Bad UUID hex, expected a string of either 32 or 36 chars,"
-                         " got %.200R", hexval);
+                         " got %.200s", PyString_AS_STRING(PyObject_Repr(hexval)));
             Py_DECREF(hexval);
             return false;
         }
@@ -2984,7 +2985,7 @@ dumps_internal(
         if (!r)
             return false;
     } else {
-        PyErr_Format(PyExc_TypeError, "%R is not JSON serializable", object);
+        PyErr_Format(PyExc_TypeError, "%s is not JSON serializable", PyString_AS_STRING(PyObject_Repr(object)));
         return false;
     }
 
@@ -3870,15 +3871,15 @@ module_exec(PyObject* m)
     if (decimal_type == NULL)
         return -1;
 
-    timezone_type = PyObject_GetAttrString(datetimeModule, "timezone");
-    Py_DECREF(datetimeModule);
+    //timezone_type = PyObject_GetAttrString(datetimeModule, "timezone");
+    //Py_DECREF(datetimeModule);
 
-    if (timezone_type == NULL)
-        return -1;
+    //if (timezone_type == NULL)
+    //    return -1;
 
-    timezone_utc = PyObject_GetAttrString(timezone_type, "utc");
-    if (timezone_utc == NULL)
-        return -1;
+    //timezone_utc = PyObject_GetAttrString(timezone_type, "utc");
+    //if (timezone_utc == NULL)
+    //    return -1;
 
     uuidModule = PyImport_ImportModule("uuid");
     if (uuidModule == NULL)
@@ -4065,6 +4066,7 @@ module_exec(PyObject* m)
 }
 
 
+#if PY_MAJOR_VERSION >= 3
 static struct PyModuleDef_Slot slots[] = {
     {Py_mod_exec, (void*) module_exec},
     {0, NULL}
@@ -4089,3 +4091,15 @@ PyInit_rapidjson()
 {
     return PyModuleDef_Init(&module);
 }
+
+#else
+
+PyMODINIT_FUNC initrapidjson(){
+    PyDoc_STRVAR(module_doc, "Fast, simple JSON encoder and decoder. Based on RapidJSON C++ library.");
+    
+    PyObject    *m = Py_InitModule3("rapidjson", functions, module_doc);
+    if(m == NULL)
+        return;
+    module_exec(m);
+}
+#endif

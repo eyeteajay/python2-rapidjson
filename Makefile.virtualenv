@@ -21,8 +21,8 @@ help::
 virtualenv: $(VENVDIR) requirements
 
 $(VENVDIR):
-	@echo "Bootstrapping Python 3 virtualenv..."
-	@$(SYS_PYTHON) -m venv --prompt $(notdir $(TOPDIR)) $@ 2>/dev/null || $(SYS_PYTHON) -m venv $@
+	@echo "Bootstrapping Python 2 virtualenv..."
+	@$(SYS_PYTHON) -m virtualenv $@
 	@$(MAKE) upgrade-pip
 
 help::
@@ -41,7 +41,7 @@ requirements: $(REQUIREMENTS_TIMESTAMP)
 
 $(REQUIREMENTS_TIMESTAMP): $(REQUIREMENTS)
 	@echo "Installing pre-requirements..."
-	@PATH=$(TOPDIR)/bin:$(PATH) $(PIP) install --no-cache-dir -r $(REQUIREMENTS)
+	@PATH="$(TOPDIR)/bin:$(PATH)" $(PIP) install --no-cache-dir -r $(REQUIREMENTS)
 	@touch $@
 
 distclean::

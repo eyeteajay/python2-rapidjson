@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# :Project:   python-rapidjson -- Packaging
+# :Project:   python2-rapidjson -- Packaging
 # :Author:    Ken Robbins <ken@kenrobbins.com>
 # :License:   MIT License
 # :Copyright: © 2015 Ken Robbins
@@ -8,6 +8,7 @@
 
 import os.path
 import sys
+import io
 
 try:
     from setuptools import setup, Extension
@@ -16,7 +17,7 @@ try:
         import packaging.specifiers
     except ImportError:
         pass
-    other_setup_options = {'python_requires': '>=3.6'}
+    other_setup_options = {'python_requires': '<3'}
 except ImportError:
     from distutils.core import setup, Extension
     other_setup_options = {}
@@ -24,8 +25,8 @@ except ImportError:
 from distutils import sysconfig
 
 
-if sys.version_info < (3, 6):
-    raise NotImplementedError("Only Python 3.6+ is supported.")
+if sys.version_info >= (3, 0):
+    raise NotImplementedError("Only Python 2.7 is supported.")
 
 ROOT_PATH = os.path.abspath(os.path.dirname(__file__))
 
@@ -43,24 +44,24 @@ else:
                            " as explained in the README.rst; in all other cases you may"
                            " want to report the issue.")
 
-with open('version.txt', encoding='utf-8') as f:
+with io.open('version.txt', encoding='utf-8') as f:
     VERSION = f.read()
 
-with open('README.rst', encoding='utf-8') as f:
+with io.open('README.rst', encoding='utf-8') as f:
     LONG_DESCRIPTION = f.read()
 
-with open('CHANGES.rst', encoding='utf-8') as f:
+with io.open('CHANGES.rst', encoding='utf-8') as f:
     CHANGES = f.read()
 
 extension_options = {
-    'sources': ['./rapidjson.cpp'],
-    'include_dirs': [rj_include_dir],
+    'sources': ['./rapidjson.cpp', './py2compat.cpp'],
+    'include_dirs': [rj_include_dir, '.'],
     'define_macros': [('PYTHON_RAPIDJSON_VERSION', VERSION)],
     'depends': ['./rapidjson_exact_version.txt'],
 }
 
 if os.path.exists('rapidjson_exact_version.txt'):
-    with open('rapidjson_exact_version.txt', encoding='utf-8') as f:
+    with io.open('rapidjson_exact_version.txt', encoding='utf-8') as f:
         extension_options['define_macros'].append(
             ('RAPIDJSON_EXACT_VERSION', f.read().strip()))
 
@@ -79,14 +80,14 @@ if cxx and 'g++' in cxx:
     # long" as an error under C++ (see issue #69)
     extension_options['extra_compile_args'] = ['-pedantic', '-Wno-long-long']
 
-    # Up to Python 3.7, some structures use "char*" instead of "const char*",
-    # and ISO C++ forbids assigning string literal constants
-    if sys.version_info < (3,7):
-        extension_options['extra_compile_args'].append('-Wno-write-strings')
+# Up to Python 3.7, some structures use "char*" instead of "const char*",
+# and ISO C++ forbids assigning string literal constants
+if sys.version_info < (3,7):
+    extension_options.setdefault('extra_compile_args', []).append('-Wno-write-strings')
 
 
 setup(
-    name='python-rapidjson',
+    name='python2-rapidjson',
     version=VERSION,
     description='Python wrapper around rapidjson',
     long_description=LONG_DESCRIPTION + '\n\n' + CHANGES,
@@ -99,16 +100,13 @@ setup(
     maintainer_email='lele@metapensiero.it',
     url='https://github.com/python-rapidjson/python-rapidjson',
     classifiers=[
-        'Development Status :: 5 - Production/Stable',
+        'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: C++',
-        'Programming Language :: Python :: 3 :: Only',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 2 :: Only',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python',
     ],
     ext_modules=[Extension('rapidjson', **extension_options)],
